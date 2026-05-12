@@ -5,7 +5,7 @@
   "description": "Hackathon WebSocket relay for Office Editor collaboration presence.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node ./src/server.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
