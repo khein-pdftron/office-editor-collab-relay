@@ -1,0 +1,16 @@
+{
+  "name": "office-editor-collab-relay",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Hackathon WebSocket relay for Office Editor collaboration presence.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
