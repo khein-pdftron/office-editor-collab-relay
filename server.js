@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 
 const port = Number(process.env.PORT || 3000);
-const rooms = new Map();
+const sessions = new Map();
 
 const server = http.createServer((req, res) => {
   if (req.url === '/healthz') {
@@ -18,19 +18,19 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
-function getRoomId(req) {
+function getSessionId(req) {
   const url = new URL(req.url, 'http://localhost');
-  const match = url.pathname.match(/^\/rooms\/([^/]+)$/);
+  const match = url.pathname.match(/^\/session\/([^/]+)$/);
   return match ? decodeURIComponent(match[1]) : 'default';
 }
 
-function getRoom(roomId) {
-  let room = rooms.get(roomId);
-  if (!room) {
-    room = new Map();
-    rooms.set(roomId, room);
+function getSession(sessionId) {
+  let session = sessions.get(sessionId);
+  if (!session) {
+    session = new Map();
+    sessions.set(sessionId, session);
   }
-  return room;
+  return session;
 }
 
 function sendJson(ws, message) {
@@ -39,16 +39,16 @@ function sendJson(ws, message) {
   }
 }
 
-function broadcast(room, senderId, data) {
-  room.forEach((peer, peerId) => {
+function broadcast(session, senderId, data) {
+  session.forEach((peer, peerId) => {
     if (peerId !== senderId && peer.ws.readyState === peer.ws.OPEN) {
       peer.ws.send(data);
     }
   });
 }
 
-function broadcastJson(room, senderId, message) {
-  broadcast(room, senderId, JSON.stringify(message));
+function broadcastJson(session, senderId, message) {
+  broadcast(session, senderId, JSON.stringify(message));
 }
 
 function parseJson(data) {
@@ -60,8 +60,8 @@ function parseJson(data) {
 }
 
 wss.on('connection', (ws, req) => {
-  const roomId = getRoomId(req);
-  const room = getRoom(roomId);
+  const sessionId = getSessionId(req);
+  const session = getSession(sessionId);
   const clientId = crypto.randomUUID();
   const peer = {
     clientId,
@@ -71,13 +71,13 @@ wss.on('connection', (ws, req) => {
     ws,
   };
 
-  room.set(clientId, peer);
+  session.set(clientId, peer);
 
   sendJson(ws, {
     type: 'hello',
-    roomId,
+    sessionId,
     clientId,
-    peers: [...room.values()]
+    peers: [...session.values()]
       .filter((candidate) => candidate.clientId !== clientId)
       .map((candidate) => ({
         clientId: candidate.clientId,
@@ -94,9 +94,9 @@ wss.on('connection', (ws, req) => {
       peer.name = message.name || peer.name;
       peer.color = message.color || peer.color;
 
-      broadcastJson(room, clientId, {
+      broadcastJson(session, clientId, {
         type: 'peer-joined',
-        roomId,
+        sessionId,
         clientId,
         userId: peer.userId,
         name: peer.name,
@@ -104,22 +104,22 @@ wss.on('connection', (ws, req) => {
       });
     }
 
-    broadcast(room, clientId, data);
+    broadcast(session, clientId, data);
   });
 
   ws.on('close', () => {
-    room.delete(clientId);
-    broadcastJson(room, clientId, {
+    session.delete(clientId);
+    broadcastJson(session, clientId, {
       type: 'peer-left',
-      roomId,
+      sessionId,
       clientId,
       userId: peer.userId,
       name: peer.name,
       color: peer.color,
     });
 
-    if (room.size === 0) {
-      rooms.delete(roomId);
+    if (session.size === 0) {
+      sessions.delete(sessionId);
     }
   });
 });
