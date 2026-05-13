@@ -126,7 +126,6 @@ Server -> Sender + Other Clients: stamped edit payload
   "sessionId": "<session-id>",
   "userId": 1,
   "payload": "<payload>",
-  "at": 1715512345678,
   "messageNumber": 2
 }
 ```

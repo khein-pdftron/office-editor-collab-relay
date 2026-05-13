@@ -221,7 +221,6 @@ function handleIncomingMessage(context) {
     payload: message.payload !== undefined
       ? message.payload
       : (message.blob !== undefined ? message.blob : message),
-    at: Date.now(),
   });
 
   // uncomment this to send the message back to the original editor.
