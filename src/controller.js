@@ -4,11 +4,13 @@ const {
   getSession,
   hasSession,
   createSession,
+  assignSessionUserId,
   appendMessage,
   removePeerFromSession,
 } = require('./session');
+const { createUser, applyUserProfile } = require('./user');
 
-function handleInit({ ws, message, user, userId, currentSessionId, setCurrentSessionId }) {
+function handleInit({ ws, message, getUser, setUser, currentSessionId, setCurrentSessionId }) {
   if (message.document === undefined) {
     sendMessage(ws, {
       type: 'error',
@@ -35,13 +37,14 @@ function handleInit({ ws, message, user, userId, currentSessionId, setCurrentSes
     return true;
   }
 
-  user.username = message.username || message.name || user.username;
-  user.color = message.color;
-  user.cursors = message.cursors !== undefined ? message.cursors : user.cursors;
 
   const session = createSession(sessionId, message.document);
+  const userId = assignSessionUserId(session);
+  const user = createUser(userId, ws);
+  applyUserProfile(user, message);
   session.participants.set(userId, user);
   setCurrentSessionId(sessionId);
+  setUser(user, userId);
 
   sendMessage(ws, {
     type: 'session-ack',
@@ -63,7 +66,7 @@ function handleInit({ ws, message, user, userId, currentSessionId, setCurrentSes
   return true;
 }
 
-function handleJoin({ ws, message, user, userId, currentSessionId, setCurrentSessionId }) {
+function handleJoin({ ws, message, getUser, setUser, currentSessionId, setCurrentSessionId }) {
   const sessionId = message.sessionId;
   if (!sessionId) {
     sendMessage(ws, {
@@ -92,12 +95,12 @@ function handleJoin({ ws, message, user, userId, currentSessionId, setCurrentSes
     return true;
   }
 
-  user.username = message.username || message.name || user.username;
-  user.color = message.color;
-  user.cursors = message.cursors !== undefined ? message.cursors : user.cursors;
-
+  const userId = assignSessionUserId(session);
+  const user = createUser(userId, ws);
+  applyUserProfile(user, message);
   session.participants.set(userId, user);
   setCurrentSessionId(sessionId);
+  setUser(user, userId);
 
   sendMessage(ws, {
     type: 'session-ack',
@@ -154,10 +157,11 @@ function handleIncomingMessage(context) {
   const {
     ws,
     data,
-    userId,
-    user,
     getCurrentSessionId,
     setCurrentSessionId,
+    setUser,
+    getUser,
+    getUserId,
   } = context;
 
   const rawData = data.toString();
@@ -168,13 +172,14 @@ function handleIncomingMessage(context) {
 
   const currentSessionId = getCurrentSessionId();
 
+
   if (message.type === 'init') {
-    handleInit({ ws, message, user, userId, currentSessionId, setCurrentSessionId });
+    handleInit({ ws, message, getUser, setUser, currentSessionId, setCurrentSessionId });
     return;
   }
 
   if (message.type === 'join') {
-    handleJoin({ ws, message, user, userId, currentSessionId, setCurrentSessionId });
+    handleJoin({ ws, message, getUser, setUser, currentSessionId, setCurrentSessionId });
     return;
   }
 
@@ -198,6 +203,16 @@ function handleIncomingMessage(context) {
     return;
   }
 
+  const user = getUser && getUser();
+  const userId = getUserId && getUserId();
+  if (!user || !userId) {
+    sendMessage(ws, {
+      type: 'error',
+      reason: 'user not initialized',
+    });
+    return;
+  }
+
   // Any non-init/join packet is treated as a chat/message payload.
   const stampedMessage = appendMessage(session, {
     type: 'edit',
@@ -209,7 +224,8 @@ function handleIncomingMessage(context) {
     at: Date.now(),
   });
 
-  sendMessage(ws, stampedMessage);
+  // uncomment this to send the message back to the original editor.
+  // sendMessage(ws, stampedMessage);
   broadcastMessage(session, stampedMessage, userId);
 }
 

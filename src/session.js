@@ -11,12 +11,18 @@ function hasSession(sessionId) {
 function createSession(sessionId, document = null) {
   const session = {
     participants: new Map(),
+    nextUserId: 1,
     nextMessageNumber: 1,
     document,
     messageStore: [],
   };
   sessions.set(sessionId, session);
   return session;
+}
+
+function assignSessionUserId(session) {
+  const userId = session.nextUserId++;
+  return userId;
 }
 
 function buildParticipantList(session, currentUserId) {
@@ -69,6 +75,7 @@ module.exports = {
   getSession,
   hasSession,
   createSession,
+  assignSessionUserId,
   buildParticipantList,
   appendMessage,
   removePeerFromSession,

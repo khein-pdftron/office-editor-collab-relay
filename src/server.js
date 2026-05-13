@@ -4,7 +4,6 @@ const { logEvent, sendMessage } = require('./util');
 const { handleIncomingMessage, handleLeave } = require('./controller');
 
 const port = Number(process.env.PORT || 3000);
-let nextUserId = 1;
 
 const server = http.createServer((req, res) => {
   if (req.url === '/healthz') {
@@ -19,52 +18,54 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
+
 wss.on('connection', (ws, req) => {
-  const userId = nextUserId++;
   let currentSessionId = null;
-  const user = {
-    userId,
-    username: String(userId),
-    color: undefined,
-    cursors: {},
-    ws,
-  };
+  let user = null;
+  let userId = null;
+
 
   logEvent('connection', {
     remoteAddress: req.socket.remoteAddress,
-    userId,
   });
+
 
   sendMessage(ws, {
     type: 'connected',
-    userId,
     ready: true,
   });
+
 
   ws.on('message', (data) => {
     const rawData = data.toString();
     logEvent('message', { userId, sessionId: currentSessionId, data: rawData });
-    
+
     handleIncomingMessage({
       ws,
       data,
-      userId,
-      user,
       getCurrentSessionId: () => currentSessionId,
       setCurrentSessionId: (nextSessionId) => {
         currentSessionId = nextSessionId;
       },
+      setUser: (u, id) => {
+        user = u;
+        userId = id;
+      },
+      getUser: () => user,
+      getUserId: () => userId,
     });
   });
 
+
   ws.on('close', () => {
     logEvent('close', { userId, sessionId: currentSessionId });
-
-    handleLeave({
-      userId,
-      user,
-      currentSessionId,
-    });
+    if (user && userId && currentSessionId) {
+      handleLeave({
+        userId,
+        user,
+        currentSessionId,
+      });
+    }
   });
 
   ws.on('error', (err) => {

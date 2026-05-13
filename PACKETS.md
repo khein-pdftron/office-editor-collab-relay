@@ -9,7 +9,6 @@ Server -> Client: `connected`
 ```json
 {
   "type": "connected",
-  "userId": 1,
   "ready": true
 }
 ```
@@ -145,7 +144,7 @@ Server -> Client: `error`
 
 ## Notes
 
-- `userId` is a server-generated unique number and is not client-settable.
+- `userId` is assigned by the server during `init`/`join` (returned in `session-ack`), is unique within each session, starts at `1` for each session, and is not client-settable.
 - `username` and `color` are read from the client `init` or `join` payload.
 - `cursors` is read from the client `init` or `join` payload and included in peer-related packets.
 - `document` is base64-encoded in `init` and `session-ack`.
