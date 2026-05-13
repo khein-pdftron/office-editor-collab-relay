@@ -2,6 +2,9 @@
 
 Hackathon WebSocket relay for Office Editor cursor presence.
 
+
+## TODO: Update this README.
+
 ## Run locally
 
 ```sh

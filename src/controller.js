@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { parseJson, sendMessage, broadcastMessage } = require('./util');
+const { parseJson, sendMessage, broadcastMessage, logEvent } = require('./util');
 const {
   getSession,
   hasSession,
@@ -69,14 +69,20 @@ function handleInit({ ws, message, getUser, setUser, currentSessionId, setCurren
 function handleJoin({ ws, message, getUser, setUser, currentSessionId, setCurrentSessionId }) {
   const sessionId = message.sessionId;
   if (!sessionId) {
+    logEvent('warn', { reason: 'Join message missing sessionId.' });
     sendMessage(ws, {
       type: 'error',
-      reason: 'join requires sessionId',
+      reason: 'join requires valid sessionId',
     });
     return true;
   }
 
   if (currentSessionId && currentSessionId !== sessionId) {
+    logEvent('warn', {
+      reason: 'User attempted to join a different session',
+      requestedSessionId: sessionId,
+      currentSessionId,
+    });
     sendMessage(ws, {
       type: 'error',
       reason: 'client already joined a different session',
@@ -87,6 +93,10 @@ function handleJoin({ ws, message, getUser, setUser, currentSessionId, setCurren
 
   const session = getSession(sessionId);
   if (!session) {
+    logEvent('warn', {
+      reason: 'Session not found for join request',
+      sessionId,
+    });
     sendMessage(ws, {
       type: 'error',
       reason: 'Session not found.',

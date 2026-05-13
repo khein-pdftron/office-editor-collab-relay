@@ -64,9 +64,6 @@ function removePeerFromSession(sessionId, userId) {
   }
 
   session.participants.delete(userId);
-  if (session.participants.size === 0) {
-    sessions.delete(sessionId);
-  }
 
   return session;
 }

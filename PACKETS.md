@@ -148,6 +148,7 @@ Server -> Client: `error`
 - `cursors` is read from the client `init` or `join` payload and included in peer-related packets.
 - `document` is base64-encoded in `init` and `session-ack`.
 - `messages` replay contains `peer-joined`, `peer-left`, and `edit` events.
+- Sessions remain in memory when participant count reaches zero.
 - Only `edit` events are stamped with `messageNumber`.
 - Emitted `edit` events include `sessionId`.
 - `messageNumber` is assigned by the server as a monotonic per-session sequence for `edit` events.

@@ -8,7 +8,10 @@ function parseJson(data) {
 
 function logEvent(event, details) {
   const time = new Date().toISOString();
-  console.log(`[${time}] [${event}]`, details);
+  const isWarn = event === 'warn';
+  const prefix = isWarn ? '\x1b[31m' : '';
+  const suffix = isWarn ? '\x1b[0m' : '';
+  console.log(`${prefix}[${time}] [${event}]${suffix}`, details);
 }
 
 function sendMessage(ws, message) {

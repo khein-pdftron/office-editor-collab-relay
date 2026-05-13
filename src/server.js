@@ -38,7 +38,12 @@ wss.on('connection', (ws, req) => {
 
   ws.on('message', (data) => {
     const rawData = data.toString();
-    logEvent('message', { userId, sessionId: currentSessionId, data: rawData });
+    let parsedMessage = null;
+    try {
+      parsedMessage = JSON.parse(rawData);
+    } catch {
+      parsedMessage = null;
+    }
 
     handleIncomingMessage({
       ws,
@@ -53,6 +58,18 @@ wss.on('connection', (ws, req) => {
       },
       getUser: () => user,
       getUserId: () => userId,
+    });
+
+    const requestedSessionId =
+      parsedMessage && typeof parsedMessage.sessionId === 'string'
+        ? parsedMessage.sessionId
+        : null;
+
+    logEvent('message', {
+      type: parsedMessage && typeof parsedMessage.type === 'string' ? parsedMessage.type : null,
+      userId,
+      sessionId: currentSessionId || requestedSessionId,
+      data: rawData,
     });
   });
 
